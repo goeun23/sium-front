@@ -36,10 +36,30 @@ export default async function RootLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
+  let initialCharacterData = null;
+
+  if(user){
+    const [profileRes, userCharsRes, availableCharsRes] = await Promise.all([
+      supabase.from('users').select('gold').eq('uuid', user.id).single(),
+      supabase.from('user_characters').select('*, character:characters(*)').eq('user_id', user.id).order('created_at', { ascending: true }),
+      supabase.from('characters').select('*').order('id', { ascending: true })
+    ]);
+
+    const characters = userCharsRes.data || [];
+    const active = characters.find(c=> c.is_active) || characters[0] || null;
+
+    initialCharacterData = {
+      gold:profileRes.data?.gold || 0, 
+      userCharacters : characters, 
+      availableCharacters : availableCharsRes.data || [], 
+      activeCharacter : active
+    }
+  }
+
   return (
     <html lang="ko">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <CharacterProvider>
+        <CharacterProvider initialData={initialCharacterData}>
           <ToastProvider>
             <Header user={user} />
             {children}

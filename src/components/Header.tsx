@@ -45,9 +45,7 @@ export default function Header({ user }: HeaderProps) {
                         <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform shadow-lg shadow-indigo-100">
                             <span className="text-white font-black text-xl leading-none">S</span>
                         </div>
-                        <span className="text-xl font-bold text-slate-900 font-display">
-                            Sium
-                        </span>
+                        
                     </Link>
 
                     {/* Desktop Navigation */}

@@ -1,14 +1,7 @@
-'use client';
 
-import { useCharacter } from '@/lib/hooks/useCharacter';
-import CharacterStatus from '@/components/character/CharacterStatus';
-import TodoList from '@/components/todo/TodoList';
-import DailyHabitList from '@/components/daily-habit/DailyHabitList';
-import LevelUpModal from '@/components/character/LevelUpModal';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
-import { Loader2, Plus, Sword, Sparkles } from 'lucide-react';
-import Link from 'next/link';
+
+import { DashboardContents } from './DashboardContents';
+import { getCharactor } from '@/lib/hooks/get-character';
 
 const MOTIVATIONAL_QUOTES = [
     "오늘의 한 걸음이 내일의 방향을 만든다",
@@ -113,117 +106,17 @@ const MOTIVATIONAL_QUOTES = [
     "지금 이 문장을 읽고 있는 당신은 이미 시작했다"
 ];
 
-export default function DashboardPage() {
-    const { character, loading: charLoading } = useCharacter();
-    const [showLevelUp, setShowLevelUp] = useState(false);
-    const lastLevelRef = useRef<number | null>(null);
-    const [quote, setQuote] = useState("");
-    const router = useRouter();
+export default async function DashboardPage() {
+    const {character}  = await getCharactor() || {};
+    const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
 
-    useEffect(() => {
-        const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
-        setQuote(MOTIVATIONAL_QUOTES[randomIndex]);
-    }, []);
-
-    useEffect(() => {
-        if (!charLoading && !character) {
-            router.push('/character-select');
-        }
-
-        if (character) {
-            if (lastLevelRef.current !== null && character.current_level > lastLevelRef.current) {
-                setShowLevelUp(true);
-            }
-            lastLevelRef.current = character.current_level;
-        }
-    }, [character, charLoading, router]);
-
-    if (charLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
-            </div>
-        );
-    }
-
-    if (!character) return null;
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] px-4 py-8 md:py-16">
-            {showLevelUp && (
-                <LevelUpModal
-                    level={character.current_level}
-                    onClose={() => setShowLevelUp(false)}
-                />
-            )}
-            <div className="max-w-5xl mx-auto space-y-12">
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                    <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <Sword className="w-5 h-5 text-indigo-600" />
-                            <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">Adventure Dashboard</span>
-                        </div>
-                        <h1 className="text-4xl font-black text-slate-900 font-display mb-1">모험 일지</h1>
-                        <p className="text-slate-500 font-medium">환영합니다, 모험가님! 오늘의 퀘스트를 수행해보세요.</p>
-                    </div>
-                </div>
-
-                {/* Character Progress Section */}
-                <section>
-                    <CharacterStatus userCharacter={character} />
-                </section>
-
-                <div className="grid lg:grid-cols-3 gap-8">
-                    {/* Daily Tasks Section */}
-                    <section className="lg:col-span-2 bg-white rounded-[3rem] p-8 md:p-10 border border-slate-100 shadow-2xl shadow-slate-200/20">
-                        <TodoList />
-                        <DailyHabitList />
-                    </section>
-
-                    {/* Sidebar Info/Tips */}
-                    <section className="space-y-6">
-                        {/* Motivation Quote */}
-                        <div className="bg-indigo-600 text-white rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group border border-indigo-400/50">
-                            <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
-                            <h3 className="text-xl font-bold mb-4 flex items-center gap-2 font-display">
-                                <Sparkles className="w-5 h-5 text-indigo-200" />
-                                오늘도 힘내세요👊
-                            </h3>
-                            <p className="text-indigo-50 font-bold text-lg leading-relaxed">
-                                "{quote}"
-                            </p>
-                        </div>
-
-                        <div className="bg-slate-900 text-white rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
-                            <div className="absolute -top-4 -right-4 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
-                            <h3 className="text-xl font-bold mb-4 flex items-center gap-2 font-display">
-                                <Plus className="w-5 h-5 text-indigo-400" />
-                                오늘의 팁
-                            </h3>
-                            <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                                퀘스트를 완료하고 얻은 골드로 상점에서 멋진 동료를 구해보세요!
-                            </p>
-                            <Link
-                                href="/shop"
-                                className="inline-flex items-center text-indigo-400 font-bold hover:text-indigo-300 transition-colors"
-                            >
-                                상점 구경하기 →
-                            </Link>
-                        </div>
-                    </section>
-                </div>
-
-                {/* Mobile New Habit Button - Hidden on large screens, shown as FAB on mobile if not in mobile menu */}
-                <div className="md:hidden fixed bottom-6 right-6 z-40">
-                    <Link
-                        href="/habits/new"
-                        className="w-14 h-14 bg-indigo-600 text-white rounded-2xl shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
-                    >
-                        <Plus className="w-8 h-8" />
-                    </Link>
-                </div>
-            </div>
-        </div>
+        <DashboardContents 
+            character={character} 
+            quote={randomQuote} 
+            charLoading={false}
+        />
+        
     );
 }

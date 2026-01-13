@@ -4,6 +4,16 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { createClient } from '@/lib/supabase/client';
 import { Character, UserCharacter } from '@/types/character';
 
+interface CharacterProviderProps {
+    children: React.ReactNode;
+    initialData?: {
+        userCharacters: UserCharacter[];
+        availableCharacters: Character[];
+        gold: number;
+        activeCharacter: UserCharacter | null;
+    } | null;
+}
+
 interface CharacterContextType {
     character: UserCharacter | null;
     userCharacters: UserCharacter[];
@@ -21,14 +31,15 @@ interface CharacterContextType {
 
 const CharacterContext = createContext<CharacterContextType | undefined>(undefined);
 
-export function CharacterProvider({ children }: { children: React.ReactNode }) {
-    const [character, setCharacter] = useState<UserCharacter | null>(null);
-    const [userCharacters, setUserCharacters] = useState<UserCharacter[]>([]);
-    const [availableCharacters, setAvailableCharacters] = useState<Character[]>([]);
-    const [gold, setGold] = useState(0);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+export function CharacterProvider({children, initialData}:CharacterProviderProps) {
+      // 1. 초기값을 props에서 받아옴 (없으면 기본값)
+    const [character, setCharacter] = useState<UserCharacter | null>(initialData?.activeCharacter ?? null);
+    const [userCharacters, setUserCharacters] = useState<UserCharacter[]>(initialData?.userCharacters ?? []);
+    const [availableCharacters, setAvailableCharacters] = useState<Character[]>(initialData?.availableCharacters ?? []);
+    const [gold, setGold] = useState(initialData?.gold ?? 0);
     const supabase = createClient();
+    const [loading, setLoading] = useState(!initialData)
+    const [error, setError] = useState<string | null>(null);
 
     const fetchAvailableCharacters = useCallback(async () => {
         try {
@@ -290,8 +301,10 @@ export function CharacterProvider({ children }: { children: React.ReactNode }) {
 
 
     useEffect(() => {
-        fetchUserData();
-        fetchAvailableCharacters();
+        if (!initialData) {
+            fetchUserData();
+            fetchAvailableCharacters();
+        }
 
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -302,7 +315,7 @@ export function CharacterProvider({ children }: { children: React.ReactNode }) {
         });
 
         return () => subscription.unsubscribe();
-    }, [fetchUserData, fetchAvailableCharacters, supabase]);
+    }, [fetchUserData, fetchAvailableCharacters, supabase, initialData]);
 
     return (
         <CharacterContext.Provider
