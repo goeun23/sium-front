@@ -1,16 +1,13 @@
-import { createClient } from '@/lib/supabase/server';
+
 import Link from 'next/link';
 import { Sword, Sparkles, ArrowRight, Shield, Coins } from 'lucide-react';
 import Image from 'next/image';
-import { redirect } from 'next/navigation';
 
-export default async function LandingPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
 
-  if (user) {
-    redirect('/dashboard');
-  }
+
+export const dynamic = 'force-static';
+
+export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0f172a] text-slate-200">
@@ -36,26 +33,13 @@ export default async function LandingPage() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-              {user ? (
-                <Link
-                  href="/dashboard"
-                  className="group relative inline-flex items-center px-10 py-5 bg-indigo-600 text-white text-xl font-black rounded-[2rem] hover:bg-indigo-500 transition-all shadow-[0_0_30px_rgba(79,70,229,0.4)] hover:-translate-y-1 active:scale-95"
-                >
-                  <Sword className="mr-3 w-6 h-6 group-hover:rotate-12 transition-transform" />
-                  모험 계속하기
-                  <ArrowRight className="ml-3 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              ) : (
-                <>
-                  <Link
-                    href="/login"
-                    className="group relative inline-flex items-center px-10 py-5 bg-indigo-600 text-white text-xl font-black rounded-[2rem] hover:bg-indigo-500 transition-all shadow-[0_0_30px_rgba(79,70,229,0.4)] hover:-translate-y-1 active:scale-95 w-full sm:w-auto justify-center"
-                  >
-                    모험 시작하기
-                    <ArrowRight className="ml-3 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </>
-              )}
+              <Link
+                href="/login"
+                className="group relative inline-flex items-center px-10 py-5 bg-indigo-600 text-white text-xl font-black rounded-[2rem] hover:bg-indigo-500 transition-all shadow-[0_0_30px_rgba(79,70,229,0.4)] hover:-translate-y-1 active:scale-95 w-full sm:w-auto justify-center"
+              >
+                모험 시작하기
+                <ArrowRight className="ml-3 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </div>
           </div>
         </div>

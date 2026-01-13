@@ -30,6 +30,7 @@ export async function updateSession(request: NextRequest) {
     );
 
     // refreshing the auth token
+    // 유저정보가져오기 
     const {
         data: { user },
     } = await supabase.auth.getUser();
@@ -37,9 +38,17 @@ export async function updateSession(request: NextRequest) {
     const protectedRoutes = ['/dashboard', '/habits', '/character-select'];
     const isProtectedRoute = protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route));
 
+    // 1. 보호된 라우트 접근 제어: 로그인 안 했는데 보호된 페이지 가려면 -> 로그인 페이지로
     if (isProtectedRoute && !user) {
         const url = request.nextUrl.clone();
         url.pathname = '/login';
+        return NextResponse.redirect(url);
+    }
+
+    // 2. 루트('/') 접근 제어: 로그인 했는데 랜딩 페이지 가려면 -> 대시보드로
+    if (request.nextUrl.pathname === '/' && user) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/dashboard';
         return NextResponse.redirect(url);
     }
 
