@@ -1,14 +1,10 @@
-
 import Link from 'next/link';
 import { Sword, Sparkles, ArrowRight, Shield, Coins } from 'lucide-react';
 import Image from 'next/image';
 
-
-
 export const dynamic = 'force-static';
 
 export default function LandingPage() {
-
   return (
     <div className="flex flex-col min-h-screen bg-[#0f172a] text-slate-200">
       {/* Hero Section */}
@@ -17,18 +13,22 @@ export default function LandingPage() {
           <div className="text-center max-w-5xl mx-auto">
             <div className="inline-flex items-center rounded-full bg-indigo-500/10 border border-indigo-500/20 px-6 py-2 mb-10 animate-fade-in">
               <Sparkles className="w-4 h-4 text-indigo-400 mr-2" />
-              <span className="text-sm font-black text-indigo-300 font-display uppercase tracking-widest">The Task RPG</span>
+              <span className="text-sm font-black text-indigo-300 font-display uppercase tracking-widest">
+                The Task RPG
+              </span>
             </div>
 
             <h1 className="text-6xl md:text-8xl font-black text-white tracking-tight leading-[1.1] mb-10 animate-slide-up font-display">
-              나의 일상이<br />
+              나의 일상이
+              <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-400 to-amber-400">
                 위대한 모험으로
               </span>
             </h1>
 
             <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed font-medium">
-              Sium에서 매일의 퀘스트를 완료하고 캐릭터를 육성하세요.<br className="hidden md:block" />
+              Sium에서 매일의 퀘스트를 완료하고 캐릭터를 육성하세요.
+              <br className="hidden md:block" />
               골드를 벌어 동료들을 영입하세요.
             </p>
 
@@ -59,14 +59,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-
       {/* Visual Preview Section */}
       <section className="py-32 bg-[#0f172a]">
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-20 items-center max-w-7xl mx-auto">
             <div className="order-2 lg:order-1">
               <h2 className="text-4xl md:text-6xl font-black text-white mb-10 font-display leading-tight">
-                작은 습관이 모여<br />
+                작은 습관이 모여
+                <br />
                 강력한 힘이 됩니다
               </h2>
               <div className="space-y-8">
@@ -102,7 +102,14 @@ export default function LandingPage() {
 
                 <div className="flex-1 flex items-center justify-center relative z-10">
                   <div className="text-[12rem] animate-[float_4s_ease-in-out_infinite]">
-                    <Image src="https://mskfbcucjqkqaiwjmsry.supabase.co/storage/v1/object/public/characters/gumiho/gumiho_20_00.png" alt="worrior" width={300} height={300} />
+                    <Image
+                      src="https://mskfbcucjqkqaiwjmsry.supabase.co/storage/v1/object/public/characters/gumiho/gumiho_20_00.png"
+                      alt="worrior"
+                      width={300}
+                      height={300}
+                      priority
+                      sizes="(max-width: 768px) 200px, 300px"
+                    />
                   </div>
                 </div>
 
@@ -135,7 +142,8 @@ export default function LandingPage() {
             <span className="text-2xl font-black text-white font-display">Sium</span>
           </div>
           <p className="text-slate-500 text-sm max-w-md mx-auto leading-loose mb-10">
-            당신의 성장을 응원합니다. Sium은 더 나은 내일을 만드는<br />
+            당신의 성장을 응원합니다. Sium은 더 나은 내일을 만드는
+            <br />
             가장 강력한 파트너가 될 것입니다.
           </p>
           <p className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.3em]">
@@ -147,10 +155,26 @@ export default function LandingPage() {
   );
 }
 
-function FeatureCard({ icon, title, description, highlight, borderColor }: { icon: React.ReactNode, title: string, description: string, highlight: string, borderColor: string }) {
+function FeatureCard({
+  icon,
+  title,
+  description,
+  highlight,
+  borderColor,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  highlight: string;
+  borderColor: string;
+}) {
   return (
-    <div className={`bg-slate-900/50 p-10 rounded-[2.5rem] border ${borderColor} hover:bg-slate-800/80 hover:-translate-y-2 transition-all duration-300 group`}>
-      <div className={`w-20 h-20 ${highlight} rounded-[1.5rem] flex items-center justify-center mb-8 shadow-inner group-hover:scale-110 transition-transform`}>
+    <div
+      className={`bg-slate-900/50 p-10 rounded-[2.5rem] border ${borderColor} hover:bg-slate-800/80 hover:-translate-y-2 transition-all duration-300 group`}
+    >
+      <div
+        className={`w-20 h-20 ${highlight} rounded-[1.5rem] flex items-center justify-center mb-8 shadow-inner group-hover:scale-110 transition-transform`}
+      >
         {icon}
       </div>
       <h3 className="text-2xl font-black text-white mb-4 font-display">{title}</h3>
@@ -159,14 +183,26 @@ function FeatureCard({ icon, title, description, highlight, borderColor }: { ico
   );
 }
 
-function GameStep({ number, title, description }: { number: string, title: string, description: string }) {
+function GameStep({
+  number,
+  title,
+  description,
+}: {
+  number: string;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="flex gap-6 group">
       <div className="flex-shrink-0">
-        <span className="text-5xl font-black text-slate-800 group-hover:text-indigo-900 transition-colors font-display">{number}</span>
+        <span className="text-5xl font-black text-slate-800 group-hover:text-indigo-900 transition-colors font-display">
+          {number}
+        </span>
       </div>
       <div>
-        <h4 className="text-xl font-black text-white mb-2 group-hover:text-indigo-400 transition-colors">{title}</h4>
+        <h4 className="text-xl font-black text-white mb-2 group-hover:text-indigo-400 transition-colors">
+          {title}
+        </h4>
         <p className="text-slate-500 font-medium leading-relaxed">{description}</p>
       </div>
     </div>
