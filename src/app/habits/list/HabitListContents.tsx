@@ -1,4 +1,3 @@
-'use client';
 import HabitCard from './HabitCard';
 import { Plus, Target, Sword } from 'lucide-react';
 import Link from 'next/link';
