@@ -4,345 +4,233 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { createClient } from '@/lib/supabase/client';
 import { Character, UserCharacter } from '@/types/character';
 
-interface CharacterProviderProps {
-    children: React.ReactNode;
-    initialData?: {
-        userCharacters: UserCharacter[];
-        availableCharacters: Character[];
-        gold: number;
-        activeCharacter: UserCharacter | null;
-    } | null;
-}
+import {
+  addRewardAction,
+  fetchUserProfileAction,
+  selectCharacterAction,
+  spendGoldAction,
+  switchCharacterAction,
+  fetchUserCharacterAction,
+  updateGoldAction,
+} from '@/actions/characterActions';
 
-interface CharacterContextType {
-    character: UserCharacter | null;
+interface CharacterProviderProps {
+  children: React.ReactNode;
+  initialData?: {
     userCharacters: UserCharacter[];
     availableCharacters: Character[];
     gold: number;
-    loading: boolean;
-    error: string | null;
-    selectCharacter: (characterId: number) => Promise<UserCharacter>;
-    switchCharacter: (userCharacterId: string) => Promise<void>;
-    addRewards: (xp: number, earnedGold: number) => Promise<{ data: UserCharacter; leveledUp: boolean }>;
-    updateGold: (newGold: number) => Promise<void>;
-    spendGold: (amount: number) => Promise<void>;
-    refresh: () => Promise<void>;
+    activeCharacter: UserCharacter | null;
+  } | null;
+}
+
+interface CharacterContextType {
+  character: UserCharacter | null;
+  userCharacters: UserCharacter[];
+  availableCharacters: Character[];
+  gold: number;
+  loading: boolean;
+  error: string | null;
+  selectCharacter: (characterId: number) => Promise<UserCharacter>;
+  switchCharacter: (userCharacterId: string) => Promise<void>;
+  addRewards: (
+    xp: number,
+    earnedGold: number
+  ) => Promise<{ data: UserCharacter; leveledUp: boolean }>;
+  updateGold: (newGold: number) => Promise<void>;
+  spendGold: (amount: number) => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 const CharacterContext = createContext<CharacterContextType | undefined>(undefined);
 
-export function CharacterProvider({children, initialData}:CharacterProviderProps) {
-      // 1. 초기값을 props에서 받아옴 (없으면 기본값)
-    const [character, setCharacter] = useState<UserCharacter | null>(initialData?.activeCharacter ?? null);
-    const [userCharacters, setUserCharacters] = useState<UserCharacter[]>(initialData?.userCharacters ?? []);
-    const [availableCharacters, setAvailableCharacters] = useState<Character[]>(initialData?.availableCharacters ?? []);
-    const [gold, setGold] = useState(initialData?.gold ?? 0);
-    const supabase = createClient();
-    const [loading, setLoading] = useState(!initialData)
-    const [error, setError] = useState<string | null>(null);
+export function CharacterProvider({ children, initialData }: CharacterProviderProps) {
+  // 1. 초기값을 props에서 받아옴 (없으면 기본값)
+  const [character, setCharacter] = useState<UserCharacter | null>(
+    initialData?.activeCharacter ?? null
+  );
+  const [userCharacters, setUserCharacters] = useState<UserCharacter[]>(
+    initialData?.userCharacters ?? []
+  );
+  const [availableCharacters, setAvailableCharacters] = useState<Character[]>(
+    initialData?.availableCharacters ?? []
+  );
+  const [gold, setGold] = useState(initialData?.gold ?? 0);
+  const supabase = createClient();
+  const [loading, setLoading] = useState(!initialData);
+  const [error, setError] = useState<string | null>(null);
 
-    const fetchAvailableCharacters = useCallback(async () => {
-        try {
-            const { data, error } = await supabase
-                .from('characters')
-                .select('*')
-                .order('id', { ascending: true });
+  const fetchAvailableCharacters = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('characters')
+        .select('*')
+        .order('id', { ascending: true });
 
-            if (error) throw error;
-            setAvailableCharacters(data || []);
-        } catch (err: any) {
-            setError(err.message);
-        }
-    }, [supabase]);
+      if (error) throw error;
+      setAvailableCharacters(data || []);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }, [supabase]);
 
-    const fetchUserData = useCallback(async () => {
-        try {
-            setLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                setCharacter(null);
-                setUserCharacters([]);
-                setGold(0);
-                setLoading(false);
-                return;
-            }
+  const fetchUserData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setCharacter(null);
+        setUserCharacters([]);
+        setGold(0);
+        setLoading(false);
+        return;
+      }
 
-            // 1. Fetch User Profile (Gold)
-            const { data: profile, error: profileError } = await supabase
-                .from('users')
-                .select('gold')
-                .eq('uuid', user.id)
-                .single();
+      // 1. Fetch User Profile (Gold)
+      const { profileGold } = await fetchUserProfileAction();
+      setGold(profileGold || 0);
 
-            if (profileError) {
-                if (profileError.code !== 'PGRST116') throw profileError;
-                console.warn('Profile not found for user:', user.id);
-            } else {
-                setGold(profile.gold || 0);
-            }
+      // 2. Fetch User Characters
+      const { characters } = await fetchUserCharacterAction();
+      setUserCharacters(characters || []);
 
-            // 2. Fetch User Characters
-            const { data: characters, error: charError } = await supabase
-                .from('user_characters')
-                .select('*, character:characters(*)')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: true });
+      // 3. Set active character
+      const active = characters?.find((c) => c.is_active) || characters?.[0] || null;
+      setCharacter(active);
+    } catch (err: any) {
+      console.error('Error fetching user data:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
 
-            if (charError) throw charError;
+  const selectCharacter = async (characterId: number) => {
+    if (!character) throw new Error('No character selected');
 
-            setUserCharacters(characters || []);
+    try {
+      setLoading(true);
+      const { activedCharacter } = await selectCharacterAction(characterId);
 
-            // 3. Set active character
-            const active = characters?.find(c => c.is_active) || characters?.[0] || null;
-            setCharacter(active);
+      setCharacter(activedCharacter);
+      await fetchUserData();
+      return activedCharacter;
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
+  };
 
-        } catch (err: any) {
-            console.error('Error fetching user data:', err);
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    }, [supabase]);
+  const switchCharacter = async (userCharacterId: string) => {
+    try {
+      const { error } = await switchCharacterAction(userCharacterId);
 
-    const selectCharacter = async (characterId: number) => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Not authenticated');
+      if (error) throw error;
+      await fetchUserData();
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
+  };
 
-            // 1. Deactivate other characters
-            await supabase
-                .from('user_characters')
-                .update({ is_active: false })
-                .eq('user_id', user.id);
+  const addRewards = async (xp: number, earnedGold: number) => {
+    if (!character) throw new Error('No character selected');
 
-            // 2. Check if already owned (re-check state or fetch)
-            const { data: existingChars } = await supabase
-                .from('user_characters')
-                .select('*, character:characters(*)')
-                .eq('user_id', user.id)
-                .eq('character_id', characterId);
+    try {
+      setLoading(true);
 
-            const existing = existingChars?.[0];
+      // server action 호출
+      const { newCharacterData, newGold, leveledUp } = await addRewardAction({
+        characterId: character.id,
+        xpToAdd: xp,
+        earnedGold,
+      });
 
-            if (existing) {
-                // Just activate it
-                const { data, error } = await supabase
-                    .from('user_characters')
-                    .update({ is_active: true })
-                    .eq('id', existing.id)
-                    .select('*, character:characters(*)')
-                    .single();
+      setCharacter(newCharacterData);
+      setGold(newGold);
+      setUserCharacters((prev) =>
+        prev.map((c) => (c.id === newCharacterData.id ? newCharacterData : c))
+      );
+      if (leveledUp) {
+        // level up action 처리
+      }
 
-                if (error) throw error;
-                setCharacter(data);
-                await fetchUserData();
-                return data;
-            } else {
-                // Create new one
-                const { data, error } = await supabase
-                    .from('user_characters')
-                    .insert({
-                        user_id: user.id,
-                        character_id: characterId,
-                        current_xp: 0,
-                        current_level: 1,
-                        is_active: true,
-                    })
-                    .select('*, character:characters(*)')
-                    .single();
+      return { data: newCharacterData, leveledUp };
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                if (error) throw error;
-                setCharacter(data);
-                await fetchUserData(); // Refresh list
-                return data;
-            }
-        } catch (err: any) {
-            setError(err.message);
-            throw err;
-        }
-    };
+  const updateGold = async (newGoldValue: number) => {
+    try {
+      await updateGoldAction(newGoldValue);
+      setGold(newGoldValue);
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
+  };
 
-    const switchCharacter = async (userCharacterId: string) => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Not authenticated');
+  const spendGold = async (amount: number) => {
+    try {
+      const { newGold } = await spendGoldAction(amount);
+      setGold(newGold);
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
+  };
 
-            // 1. Deactivate all
-            await supabase
-                .from('user_characters')
-                .update({ is_active: false })
-                .eq('user_id', user.id);
+  useEffect(() => {
+    if (!initialData) {
+      fetchUserData();
+      fetchAvailableCharacters();
+    }
 
-            // 2. Activate selected
-            const { error } = await supabase
-                .from('user_characters')
-                .update({ is_active: true })
-                .eq('id', userCharacterId);
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        fetchUserData();
+        fetchAvailableCharacters();
+      }
+    });
 
-            if (error) throw error;
-            await fetchUserData();
-        } catch (err: any) {
-            setError(err.message);
-            throw err;
-        }
-    };
+    return () => subscription.unsubscribe();
+  }, [fetchUserData, fetchAvailableCharacters, supabase, initialData]);
 
-    const addRewards = async (xp: number, earnedGold: number) => {
-        if (!character) throw new Error('No character selected');
-
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Not authenticated');
-
-            // 1. Update Character XP
-            let newLevel = character.current_level;
-            let finalXP = character.current_xp + xp;
-
-            while (true) {
-                const nextLevelThreshold = newLevel * 100;
-                if (finalXP >= nextLevelThreshold) {
-                    finalXP -= nextLevelThreshold;
-                    newLevel += 1;
-                } else {
-                    break;
-                }
-            }
-
-            const { data: charData, error: charError } = await supabase
-                .from('user_characters')
-                .update({
-                    current_xp: finalXP,
-                    current_level: newLevel,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', character.id)
-                .select('*, character:characters(*)')
-                .single();
-
-            if (charError) throw charError;
-
-            // 2. Update Shared Gold
-            // Always fetch latest gold from DB to prevent race conditions or stale state issues
-            const { data: profile, error: profileFetchError } = await supabase
-                .from('users')
-                .select('gold')
-                .eq('uuid', user.id)
-                .maybeSingle(); // Use maybeSingle to avoid PGRST116
-
-            if (profileFetchError) throw profileFetchError;
-
-            const currentGold = profile?.gold || 0;
-            const newGold = currentGold + earnedGold;
-
-            const { error: goldError } = await supabase
-                .from('users')
-                .upsert({ uuid: user.id, gold: newGold }, { onConflict: 'uuid' });
-
-            if (goldError) throw goldError;
-
-            setGold(newGold);
-            setCharacter(charData);
-            setUserCharacters(prev => prev.map(c => c.id === charData.id ? charData : c));
-
-            return { data: charData, leveledUp: newLevel > character.current_level };
-        } catch (err: any) {
-            setError(err.message);
-            throw err;
-        }
-    };
-
-    const updateGold = async (newGoldValue: number) => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Not authenticated');
-
-            const { error } = await supabase
-                .from('users')
-                .update({ gold: newGoldValue })
-                .eq('uuid', user.id);
-
-            if (error) throw error;
-            setGold(newGoldValue);
-        } catch (err: any) {
-            setError(err.message);
-            throw err;
-        }
-    };
-
-    const spendGold = async (amount: number) => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Not authenticated');
-
-            // Fetch latest gold to ensure we don't use stale state
-            const { data: profile, error: fetchError } = await supabase
-                .from('users')
-                .select('gold')
-                .eq('uuid', user.id)
-                .maybeSingle();
-
-            if (fetchError) throw fetchError;
-
-            const currentGold = profile?.gold || 0;
-            if (currentGold < amount) throw new Error('골드가 부족합니다.');
-
-            const newGold = currentGold - amount;
-            const { error: updateError } = await supabase
-                .from('users')
-                .upsert({ uuid: user.id, gold: newGold }, { onConflict: 'uuid' });
-
-            if (updateError) throw updateError;
-            setGold(newGold);
-        } catch (err: any) {
-            setError(err.message);
-            throw err;
-        }
-    };
-
-
-    useEffect(() => {
-        if (!initialData) {
-            fetchUserData();
-            fetchAvailableCharacters();
-        }
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-            if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-                fetchUserData();
-                fetchAvailableCharacters();
-            }
-        });
-
-        return () => subscription.unsubscribe();
-    }, [fetchUserData, fetchAvailableCharacters, supabase, initialData]);
-
-    return (
-        <CharacterContext.Provider
-            value={{
-                character,
-                userCharacters,
-                availableCharacters,
-                gold,
-                loading,
-                error,
-                selectCharacter,
-                switchCharacter,
-                addRewards,
-                updateGold,
-                spendGold,
-                refresh: fetchUserData,
-            }}
-        >
-            {children}
-        </CharacterContext.Provider>
-    );
+  return (
+    <CharacterContext.Provider
+      value={{
+        character,
+        userCharacters,
+        availableCharacters,
+        gold,
+        loading,
+        error,
+        selectCharacter,
+        switchCharacter,
+        addRewards,
+        updateGold,
+        spendGold,
+        refresh: fetchUserData,
+      }}
+    >
+      {children}
+    </CharacterContext.Provider>
+  );
 }
 
 export function useCharacter() {
-    const context = useContext(CharacterContext);
-    if (context === undefined) {
-        throw new Error('useCharacter must be used within a CharacterProvider');
-    }
-    return context;
+  const context = useContext(CharacterContext);
+  if (context === undefined) {
+    throw new Error('useCharacter must be used within a CharacterProvider');
+  }
+  return context;
 }
